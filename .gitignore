@@ -1,0 +1,13 @@
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+# large artifacts
+data_cache/
+datasets/
+checkpoints/
+runs/
+exports/
+*.onnx
+*.safetensors
