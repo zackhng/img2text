@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Iterable, Iterator, Literal
 
@@ -23,6 +23,7 @@ class Record:
     target_format: TargetFormat
     source: str
     split: str = "train"
+    meta: dict = field(default_factory=dict)  # generator settings, free-form
 
     def __post_init__(self) -> None:
         if self.task not in TASKS:
