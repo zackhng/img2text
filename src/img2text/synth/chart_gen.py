@@ -150,7 +150,9 @@ class ChartSpec:
     style: Style = field(default_factory=Style)
     unit: str = ""  # e.g. "$m", "%"
     secondary: list[str] = field(default_factory=list)  # series on the right axis (combo)
+    secondary_title: str = ""  # right-axis title; defaults to "<series> (%)"
     seed: int = 0
+    lang: str = "en"  # en | zh | mixed (English titles, Chinese categories and series)
 
     def to_chartcsv(self) -> str:
         """Ground-truth label: a short header block followed by the data table as CSV."""
@@ -170,7 +172,19 @@ class ChartSpec:
 
     def meta(self) -> dict:
         return {"chart_type": self.chart_type, "n_categories": len(self.categories),
-                "n_series": len(self.series), **asdict(self.style)}
+                "n_series": len(self.series), "languages": LANGUAGES[self.lang],
+                **asdict(self.style)}
+
+    @property
+    def right_axis_title(self) -> str:
+        return self.secondary_title or f"{self.secondary[0]} (%)"
+
+
+LANGUAGES: dict[str, list[str]] = {"en": ["en"], "zh": ["zh"], "mixed": ["en", "zh"]}
+
+
+def _cjk(spec: ChartSpec) -> bool:
+    return spec.lang != "en"
 
 
 def _fmt(v: float) -> str:
@@ -418,6 +432,15 @@ def _finish_mpl(fig, ax, spec: ChartSpec, path: Path, twin=()) -> None:
     fig.savefig(path, bbox_inches="tight", facecolor=fig.get_facecolor(), dpi=st.render_dpi)
 
 
+CJK_FONTS = ["Microsoft YaHei", "SimHei", "DejaVu Sans"]
+
+
+def _mpl_font_rc(spec: ChartSpec) -> dict:
+    if not _cjk(spec):
+        return {}
+    return {"font.family": "sans-serif", "font.sans-serif": CJK_FONTS, "axes.unicode_minus": False}
+
+
 def _render_matplotlib(spec: ChartSpec, path: Path) -> None:
     import matplotlib
 
@@ -429,7 +452,7 @@ def _render_matplotlib(spec: ChartSpec, path: Path) -> None:
     horizontal = _is_horizontal(spec)
     base = 10 * st.font_factor
     with plt.rc_context({"font.size": base, "axes.titlesize": base * 1.3,
-                         "axes.labelsize": base * 1.05}):
+                         "axes.labelsize": base * 1.05, **_mpl_font_rc(spec)}):
         fig, ax = plt.subplots(figsize=st.fig_inches, dpi=st.render_dpi)
         fig.patch.set_facecolor(st.bg)
         ax.set_facecolor(st.bg)
@@ -458,7 +481,7 @@ def _render_matplotlib(spec: ChartSpec, path: Path) -> None:
             ax2.plot(pos, spec.series[spec.secondary[0]], marker="o", color=colors[1],
                      label=spec.secondary[0])
             if st.show_axis_titles:
-                ax2.set_ylabel(f"{spec.secondary[0]} (%)")
+                ax2.set_ylabel(spec.right_axis_title)
             twin = [ax2]
         elif spec.chart_type == "donut":
             _draw_donut(ax, spec)
@@ -486,7 +509,7 @@ def _render_seaborn(spec: ChartSpec, path: Path) -> None:
     sns.set_theme(
         style="whitegrid" if st.grid else "white",
         font_scale=st.font_factor,
-        rc={"figure.facecolor": st.bg, "axes.facecolor": st.bg},
+        rc={"figure.facecolor": st.bg, "axes.facecolor": st.bg, **_mpl_font_rc(spec)},
     )
     names = [n for n in spec.series if n not in spec.secondary]
     palette = [colors[i % len(colors)] for i in range(len(names))]
@@ -552,7 +575,7 @@ def _render_plotly(spec: ChartSpec, path: Path) -> None:
         fig.add_scatter(x=cats, y=spec.series[spec.secondary[0]], name=spec.secondary[0],
                         mode="lines+markers", marker_color=colors[1], secondary_y=True)
         fig.update_yaxes(title_text=spec.y_title, secondary_y=False)
-        fig.update_yaxes(title_text=f"{spec.secondary[0]} (%)", secondary_y=True)
+        fig.update_yaxes(title_text=spec.right_axis_title, secondary_y=True)
     elif spec.chart_type == "donut":
         fig = go.Figure(go.Pie(
             labels=cats, values=spec.series["Share"], hole=0.4,
@@ -617,7 +640,8 @@ def _render_plotly(spec: ChartSpec, path: Path) -> None:
         title=spec.title if st.show_title else None,
         template="plotly_white" if st.grid else "simple_white",
         width=width, height=height,
-        font=dict(size=12 * st.font_factor),
+        font=dict(size=12 * st.font_factor,
+                  family="Microsoft YaHei, SimHei, sans-serif" if _cjk(spec) else None),
         paper_bgcolor=st.bg, plot_bgcolor=st.bg,
         margin=dict(t=80 if st.show_title else 30, b=110 if legend == "bottom" else 60),
     )
