@@ -70,6 +70,27 @@ downloading. Priority: **P0** = needed for the first training run, **P1** = add 
 | Real financial figures | SEC EDGAR 10-K / annual reports + earnings decks → layout model crops → teacher pseudo-labels → self-consistency filter (charts: re-render and compare) | pseudo-labels | P1 |
 | **Gold eval set** | ~300 hand-verified real crops: 100 tables, 120 charts, 50 diagrams, 30 other | human-verified | P0 (eval) |
 
+## Languages (English and Chinese)
+
+Datasets are stored per language under `data_cache/raw/<lang>/<name>/`:
+
+| Folder | Contents | Downloaded by default |
+|---|---|---|
+| `en/` | English-only sources (all tables above, except the Chinese rows below) | yes |
+| `zh/` | Chinese-only sources | no, opt-in: `--lang zh` |
+| `multi/` | Sources whose images mix English and Chinese | no, opt-in: `--lang multi` |
+
+A sample from a mixed source keeps every language it contains in `meta.languages`, so filtering
+by language works across folders. `multi/` samples are not moved into `en/` or `zh/`.
+
+| Dataset | Lang | Size | Content | Target | License | Hub / source | Pri |
+|---|---|---|---|---|---|---|---|
+| **PolyChartQA** (mirror) | multi | not measured | Chart QA in 10 languages incl. English + Chinese (arXiv 2507.11939) | QA / data | other (verify) | `Mike33/PolyChartQA` (third-party mirror; confirm official release) | P2 (opt-in) |
+
+Searches for other Chinese table and chart sources (WTW Chinese scene tables, TAL table recognition,
+ChartMind, ChartArena) did not turn up a verified Hugging Face repo. WTW and TAL are on other hosts
+(PaddleOCR documentation links), and ChartMind and ChartArena have no confirmed release yet.
+
 ## Starting training mix (Phase 4, Stage A)
 ~35% tables, 35% charts, 15% diagrams, 10% other, 5% general OCR replay. Stage B then
 fine-tunes on synthetic financial data + filtered pseudo-labels.
