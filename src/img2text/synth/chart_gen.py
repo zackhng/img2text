@@ -432,7 +432,7 @@ def _finish_mpl(fig, ax, spec: ChartSpec, path: Path, twin=()) -> None:
     fig.savefig(path, bbox_inches="tight", facecolor=fig.get_facecolor(), dpi=st.render_dpi)
 
 
-CJK_FONTS = ["Microsoft YaHei", "SimHei", "DejaVu Sans"]
+CJK_FONTS = ["Microsoft YaHei", "SimHei", "Noto Sans CJK SC", "DejaVu Sans"]  # Windows, then Linux
 
 
 def _mpl_font_rc(spec: ChartSpec) -> dict:
